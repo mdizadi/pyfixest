@@ -1,7 +1,7 @@
 import re
 import warnings
 from collections.abc import Mapping
-from typing import Any, Optional, Union
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -16,8 +16,8 @@ from pyfixest.utils.dev_utils import (
 
 def get_design_matrix_and_yhat(
     model,
-    newdata: Optional[DataFrameType] = None,
-    context: Optional[Union[int, Mapping[str, Any]]] = None,
+    newdata: DataFrameType | None = None,
+    context: int | Mapping[str, Any] | None = None,
 ):
     """
     Build the design matrix X and initializes y_hat for predictions.
@@ -139,7 +139,7 @@ def _get_fixed_effects_prediction_component(
                 fdict.update({x: 0 for x in omitted_cat})
             fixef_dicts[f"C({f})"] = fdict
 
-        _fixef_mat = _apply_fixef_numpy(df_fe.values, fixef_dicts)
+        _fixef_mat = _apply_fixef_numpy(df_fe.values.astype(str), fixef_dicts)
         fe_hat += np.sum(_fixef_mat, axis=1)
 
     return fe_hat

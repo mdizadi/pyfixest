@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, Optional, Union
+from typing import Any
 
 from pyfixest.estimation.api.utils import _estimation_input_checks
 from pyfixest.estimation.FixestMulti_ import FixestMulti
@@ -19,10 +19,10 @@ from pyfixest.utils.utils import ssc as ssc_func
 def feols(
     fml: str,
     data: DataFrameType,  # type: ignore
-    vcov: Optional[Union[VcovTypeOptions, dict[str, str]]] = None,
-    vcov_kwargs: Optional[dict[str, Union[str, int]]] = None,
-    weights: Union[None, str] = None,
-    ssc: Optional[dict[str, Union[str, bool]]] = None,
+    vcov: VcovTypeOptions | dict[str, str] | None = None,
+    vcov_kwargs: dict[str, str | int] | None = None,
+    weights: None | str = None,
+    ssc: dict[str, str | bool] | None = None,
     fixef_rm: FixedRmOptions = "singleton",
     fixef_tol=1e-06,
     fixef_maxiter: int = 10_000,
@@ -36,13 +36,16 @@ def feols(
     demeaner_backend: DemeanerBackendOptions = "numba",
     use_compression: bool = False,
     reps: int = 100,
-    context: Optional[Union[int, Mapping[str, Any]]] = None,
-    seed: Optional[int] = None,
-    split: Optional[str] = None,
-    fsplit: Optional[str] = None,
-) -> Union[Feols, FixestMulti]:
+    context: int | Mapping[str, Any] | None = None,
+    seed: int | None = None,
+    split: str | None = None,
+    fsplit: str | None = None,
+) -> Feols | FixestMulti:
     """
-    Estimate a linear regression models with fixed effects using fixest formula syntax.
+    Estimate a linear regression model with fixed effects using fixest formula syntax.
+
+    Returns an object of type [Feols](/reference/estimation.models.feols_.Feols.qmd) or
+    [Feiv](/reference/estimation.models.feiv_.Feiv.qmd) (when using instrumental variables).
 
     Parameters
     ----------
@@ -184,7 +187,8 @@ def feols(
     Returns
     -------
     object
-        An instance of the [Feols](/reference/estimation.models.feols_.Feols.qmd) class or
+        An instance of the [Feols](/reference/estimation.models.feols_.Feols.qmd) class,
+        [Feiv](/reference/estimation.models.feiv_.Feiv.qmd) class (when using instrumental variables), or
         [FixestMulti](/reference/estimation.FixestMulti_.FixestMulti.qmd) class for multiple models specified via `fml`.
 
     Examples
@@ -320,19 +324,47 @@ def feols(
     pf.etable(fit)
     ```
 
-    Besides OLS, `feols()` also supports IV estimation via three part formulas:
+    Besides OLS, `feols()` also supports IV estimation via three-part formulas.
+    IV models return an instance of the [Feiv](/reference/estimation.models.feiv_.Feiv.qmd)
+    class (which inherits from [Feols](/reference/estimation.models.feols_.Feols.qmd)).
 
     ```{python}
-    fit = pf.feols("Y ~  X2 | f1 + f2 | X1 ~ Z1", data)
-    fit.tidy()
+    fit_iv = pf.feols("Y ~ X2 | f1 + f2 | X1 ~ Z1", data)
+    type(fit_iv)
     ```
+
     Here, `X1` is the endogenous variable and `Z1` is the instrument. `f1` and `f2`
     are the fixed effects, as before. To estimate IV models without fixed effects,
     simply omit the fixed effects part of the formula:
 
     ```{python}
-    fit = pf.feols("Y ~  X2 | X1 ~ Z1", data)
-    fit.tidy()
+    fit_iv2 = pf.feols("Y ~ X2 | X1 ~ Z1", data)
+    fit_iv2.tidy()
+    ```
+
+    You can compare OLS and IV estimates side by side via `etable()`:
+
+    ```{python}
+    fit_ols = pf.feols("Y ~ X1 + X2 | f1 + f2", data)
+    pf.etable([fit_ols, fit_iv])
+    ```
+
+    To diagnose weak instruments, use the `IV_Diag()` method, which computes
+    the first-stage F-statistic and the effective F-statistic
+    (Olea and Pflueger, 2013):
+
+    ```{python}
+    fit_iv.IV_Diag()
+    print("First-stage F-statistic:", round(fit_iv._f_stat_1st_stage, 3))
+    print("Effective F-statistic:", round(fit_iv._eff_F, 3))
+    ```
+
+    You can also access the first-stage regression as a `Feols` object via
+    `_model_1st_stage` and display both stages with `etable()`:
+
+    ```{python}
+    first_stage = fit_iv._model_1st_stage
+    pf.etable([first_stage, fit_iv])
     ```
 
     Last, `feols()` supports interaction of variables via the `i()` syntax.

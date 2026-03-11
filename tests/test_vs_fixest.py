@@ -606,9 +606,9 @@ def test_single_fit_fepois(
     r_df_k = int(ro.r('attr(r_fixest$cov.scaled, "df.K")')[0])
     r_df_t = int(ro.r('attr(r_fixest$cov.scaled, "df.t")')[0])
     r_n_coefs = int(df_X1["n_coef"])
-    r_loglik = float(ro.r("r_fixest$loglik"))
-    r_loglik_null = float(ro.r("r_fixest$ll_null"))
-    r_pseudo_r2 = float(ro.r('fixest::r2(r_fixest)["pr2"]'))
+    r_loglik = float(ro.r("r_fixest$loglik").squeeze())
+    r_loglik_null = float(ro.r("r_fixest$ll_null").squeeze())
+    r_pseudo_r2 = float(ro.r('fixest::r2(r_fixest)["pr2"]').squeeze())
 
     if inference == "iid" and k_adj and G_adj:
         check_absolute_diff(py_nobs, r_nobs, 1e-08, "py_nobs != r_nobs")
@@ -1127,11 +1127,12 @@ def test_split_fit(N, seed, beta_type, error_type, dropna, fml_multi, split, fsp
         **({"fsplit": ro.Formula("~" + fsplit)} if fsplit is not None else {}),
     )
 
-    # TODO: split/fsplit has known sample-handling differences vs R fixest
-    # that cause large coefficient mismatches (not just SE scaling).
-    # This needs a separate fix. See gh#1161.
-    for x in range(0):
-        mod = pyfixest.fetch_model(x)
+    # Both pyfixest and R fixest use split-outer / formula-inner ordering,
+    # so the flat positional index is the same in both. Use 1-based indexing
+    # to match R's [[i]] accessor.
+    py_models = list(pyfixest.all_fitted_models.values())
+
+    for i, mod in enumerate(py_models):
         py_coef = mod.coef().values
         py_se = mod.se().values
 
@@ -1139,7 +1140,9 @@ def test_split_fit(N, seed, beta_type, error_type, dropna, fml_multi, split, fsp
         if len(py_coef) == 0:
             continue
 
-        fixest_object = r_fixest.rx2(x + 1)
+        r_idx = i + 1
+
+        fixest_object = r_fixest.rx2(r_idx)
         fixest_coef = np.atleast_1d(np.array(fixest_object.rx2("coefficients")))
         fixest_se = np.atleast_1d(np.array(fixest_object.rx2("se")))
 

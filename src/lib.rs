@@ -4,6 +4,8 @@ mod collinear;
 mod crv1;
 mod demean;
 mod nested_fixed_effects;
+mod detect_singletons;
+mod nw;
 
 #[pymodule]
 fn _core_impl(m: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -13,5 +15,9 @@ fn _core_impl(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(
         nested_fixed_effects::_count_fixef_fully_nested_all_rs
     ))?;
+    m.add_wrapped(wrap_pyfunction!(detect_singletons::_detect_singletons_rs))?;
+    m.add_wrapped(wrap_pyfunction!(nw::_nw_meat_panel_rs))?;
+    m.add_wrapped(wrap_pyfunction!(nw::_nw_meat_time_rs))?;
+    m.add_wrapped(wrap_pyfunction!(nw::_dk_meat_panel_rs))?;
     Ok(())
 }

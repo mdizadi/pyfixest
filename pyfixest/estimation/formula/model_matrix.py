@@ -1,13 +1,14 @@
 import warnings
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Final, Optional, Union
+from typing import Any, Final
 
 import formulaic
 import numpy as np
 import pandas as pd
 from formulaic.parser import DefaultFormulaParser
 
+from pyfixest.core.detect_singletons import detect_singletons
 from pyfixest.estimation.formula import FORMULAIC_FEATURE_FLAG
 from pyfixest.estimation.formula.factor_interaction import factor_interaction
 from pyfixest.estimation.formula.parse import Formula
@@ -17,7 +18,6 @@ from pyfixest.estimation.formula.utils import (
     _get_weights,
     log,
 )
-from pyfixest.estimation.internals.detect_singletons_ import detect_singletons
 from pyfixest.utils.utils import capture_context
 
 
@@ -181,7 +181,7 @@ class ModelMatrix:
         return self._data[cols]
 
     @property
-    def fixed_effects(self) -> Optional[pd.DataFrame]:
+    def fixed_effects(self) -> pd.DataFrame | None:
         """
         Get the fixed effects variables from the model.
 
@@ -197,7 +197,7 @@ class ModelMatrix:
             return self._data.loc[:, self._fixed_effects]
 
     @property
-    def endogenous(self) -> Optional[pd.DataFrame]:
+    def endogenous(self) -> pd.DataFrame | None:
         """
         Get the endogenous variable(s) for instrumental variable estimation.
 
@@ -214,7 +214,7 @@ class ModelMatrix:
             return self._data.loc[:, self._endogenous]
 
     @property
-    def instruments(self) -> Optional[pd.DataFrame]:
+    def instruments(self) -> pd.DataFrame | None:
         """
         Get the instrumental variable(s) for IV estimation.
 
@@ -232,7 +232,7 @@ class ModelMatrix:
             return self._data.loc[:, self._instruments]
 
     @property
-    def weights(self) -> Optional[pd.DataFrame]:
+    def weights(self) -> pd.DataFrame | None:
         """
         Get the observation weights for weighted estimation.
 
@@ -273,7 +273,7 @@ def create_model_matrix(
     drop_singletons: bool = False,
     drop_intercept: bool = False,
     ensure_full_rank: bool = True,
-    context: Union[int, Mapping[str, Any]] = 0,
+    context: int | Mapping[str, Any] = 0,
 ) -> ModelMatrix:
     """
     Create a ModelMatrix from a formula and data.
